@@ -1,0 +1,22 @@
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python tooling
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Notebook artifacts
+.ipynb_checkpoints/
+
+# Local artifacts
+mlruns/
+artifacts/
+data/
+
+# OS files
+.DS_Store
