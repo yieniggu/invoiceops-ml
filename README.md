@@ -6,8 +6,8 @@ notebooks explican el flujo didáctico y el código reusable vive en `src/`.
 ## Alcance actual
 
 Este repositorio incluye la configuración reusable de MLflow de ML-01, los tags
-de ownership de ML-02 y el generador de datasets de ML-03. No incluye notebooks,
-entrenamiento, Docker ni infraestructura de MLflow.
+de ownership de ML-02, el generador de datasets de ML-03 y el notebook didáctico
+de ML-04. No incluye entrenamiento, Docker ni infraestructura de MLflow.
 
 ## Requisitos
 
@@ -20,13 +20,32 @@ Desde la raíz del repositorio:
 
 ```bash
 uv sync --all-groups
-cp .env.example .env
-uv run python -m ipykernel install --user --name invoiceops-ml-py312 \
-  --display-name "InvoiceOps ML Python 3.12"
+./scripts/register-kernel.sh
 ```
 
-El archivo `.env` es local y está ignorado por Git. No incluya credenciales ni
-otros secretos en notebooks, código, salidas o commits.
+`uv sync --all-groups` crea o actualiza `.venv` con las dependencias del
+proyecto, incluido el grupo `teaching` con Jupyter e `ipykernel`. No registra un
+kernel de Jupyter. `./scripts/register-kernel.sh` registra
+`invoiceops-ml-py312` en `.venv` mediante `--sys-prefix`; es seguro repetirlo y
+no requiere instalación global, privilegios ni `--user`.
+
+Verifique que Jupyter iniciado desde el entorno del proyecto lo descubre:
+
+```bash
+uv run --group teaching jupyter kernelspec list
+uv run --group teaching jupyter kernelspec list --json
+```
+
+La segunda orden debe mostrar `invoiceops-ml-py312` bajo
+`.venv/share/jupyter/kernels/` y su `argv` debe comenzar con el intérprete de
+`.venv`. Para abrir los notebooks con ese entorno:
+
+```bash
+uv run --group teaching jupyter lab
+```
+
+Elija el kernel **InvoiceOps ML Python 3.12** si Jupyter no lo selecciona
+automáticamente.
 
 ## Configuración de MLflow
 
@@ -124,6 +143,13 @@ dataset = generate_synthetic_dataset(
 El RUT debe estar previamente normalizado por InvoiceOps. Los datos generados se
 escriben en el directorio ignorado `data/<dataset-version>/` y contienen solo
 datos sintéticos.
+
+## Notebook ML-04
+
+Abra `notebooks/01_dataset.ipynb` con Jupyter y ejecute las celdas en orden. El
+notebook genera o carga localmente `invoice-risk-v1` con una seed explícita,
+revisa sus metadatos y muestra los splits cronológicos y la distribución del
+target. Los datos sintéticos locales en `data/` están ignorados por Git.
 
 ## Estructura
 
