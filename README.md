@@ -5,9 +5,9 @@ notebooks explican el flujo didáctico y el código reusable vive en `src/`.
 
 ## Alcance actual
 
-Este repositorio incluye la configuración reusable de MLflow de ML-01 y los tags
-de ownership de ML-02. No incluye notebooks, datasets, entrenamiento, Docker ni
-infraestructura de MLflow.
+Este repositorio incluye la configuración reusable de MLflow de ML-01, los tags
+de ownership de ML-02 y el generador de datasets de ML-03. No incluye notebooks,
+entrenamiento, Docker ni infraestructura de MLflow.
 
 ## Requisitos
 
@@ -103,6 +103,27 @@ Los tags permanecen visibles y se pueden filtrar en la UI de MLflow. El
 contrato completo de INT-02 está en
 `../dev/tickets/INT-02_ownership_academico_mlflow.md`. Las convenciones de
 nomenclatura de Experiment y Registered Model corresponden a MLFLOW-05.
+
+## Dataset sintético
+
+`invoiceops_ml.data.generate_synthetic_dataset()` crea el dataset versionado
+`invoice-risk-v1` sin servicios externos. Una semilla fija produce los mismos
+archivos CSV y metadatos, que registran la versión, el esquema de features, el
+target, los tamaños de las particiones y la suma de verificación SHA-256 de cada
+partición. La partición cronológica es 70% train, 15% validation y 15% test.
+
+```python
+from invoiceops_ml.data import generate_synthetic_dataset, seed_from_rut
+
+dataset = generate_synthetic_dataset(
+    seed=seed_from_rut("12345678-5"),
+    rows=12_000,
+)
+```
+
+El RUT debe estar previamente normalizado por InvoiceOps. Los datos generados se
+escriben en el directorio ignorado `data/<dataset-version>/` y contienen solo
+datos sintéticos.
 
 ## Estructura
 
