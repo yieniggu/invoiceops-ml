@@ -77,9 +77,11 @@ owner_id
 created_by_rut
 ```
 
-Use el mismo contexto reusable para trabajo individual y grupal, dentro de un
-run activo. `owner_id` es el identificador estable entregado por InvoiceOps; no
-lo transforme en el notebook.
+Use el mismo contexto reutilizable para trabajo individual y grupal, dentro de
+una ejecución activa. `owner_id` es el UUID estable proporcionado por
+InvoiceOps: `User.id` para trabajo individual y `Group.id` para trabajo grupal.
+No lo transforme ni lo derive a partir de nombres o slugs en el notebook.
+`created_by_rut` es el RUT normalizado del creador.
 
 ```python
 import mlflow
@@ -91,15 +93,16 @@ with mlflow.start_run():
         OwnershipContext(
             organization_slug="course-2027",
             owner_type="group",
-            owner_id="data-science-group",
+            owner_id="3515a7c6-baa4-44aa-a433-e7c52d79a57d",
             created_by_rut="12345678-5",
         )
     )
 ```
 
-Los tags quedan visibles y filtrables en MLflow UI. La convención de nombres de
-experiments y Registered Models pertenece a MLFLOW-05; el mapping académico
-entre repositorios pertenece a INT-02.
+Los tags permanecen visibles y se pueden filtrar en la UI de MLflow. El
+contrato completo de INT-02 está en
+`../dev/tickets/INT-02_ownership_academico_mlflow.md`. Las convenciones de
+nomenclatura de Experiment y Registered Model corresponden a MLFLOW-05.
 
 ## Estructura
 

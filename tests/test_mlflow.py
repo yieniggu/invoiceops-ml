@@ -127,7 +127,7 @@ def test_set_run_ownership_tags_rejects_a_missing_active_run() -> None:
     context = OwnershipContext(
         organization_slug="course-2027",
         owner_type="user",
-        owner_id="user-42",
+        owner_id="ef14197c-8f5b-4aef-8fa7-310e4da998b7",
         created_by_rut="12.345.678-5",
     )
 
@@ -146,7 +146,10 @@ def test_set_run_ownership_tags_rejects_a_missing_active_run() -> None:
 
 @pytest.mark.parametrize(
     ("owner_type", "owner_id"),
-    [("user", "user-42"), ("group", "group-data-science")],
+    [
+        ("user", "ef14197c-8f5b-4aef-8fa7-310e4da998b7"),
+        ("group", "3515a7c6-baa4-44aa-a433-e7c52d79a57d"),
+    ],
 )
 def test_set_run_ownership_tags_writes_metadata_to_the_existing_active_run(
     owner_type: str, owner_id: str, tmp_path: Path
@@ -176,10 +179,10 @@ def test_set_run_ownership_tags_writes_metadata_to_the_existing_active_run(
 @pytest.mark.parametrize(
     "context",
     [
-        {"organization_slug": "", "owner_type": "user", "owner_id": "user-42", "created_by_rut": "1"},
-        {"organization_slug": "course-2027", "owner_type": "team", "owner_id": "user-42", "created_by_rut": "1"},
+        {"organization_slug": "", "owner_type": "user", "owner_id": "ef14197c-8f5b-4aef-8fa7-310e4da998b7", "created_by_rut": "1"},
+        {"organization_slug": "course-2027", "owner_type": "team", "owner_id": "ef14197c-8f5b-4aef-8fa7-310e4da998b7", "created_by_rut": "1"},
         {"organization_slug": "course-2027", "owner_type": "user", "owner_id": " ", "created_by_rut": "1"},
-        {"organization_slug": "course-2027", "owner_type": "group", "owner_id": "group-1", "created_by_rut": ""},
+        {"organization_slug": "course-2027", "owner_type": "group", "owner_id": "group-1", "created_by_rut": "1"},
     ],
 )
 def test_ownership_context_rejects_missing_metadata_or_an_unknown_owner_type(
@@ -187,3 +190,13 @@ def test_ownership_context_rejects_missing_metadata_or_an_unknown_owner_type(
 ) -> None:
     with pytest.raises(ValueError):
         OwnershipContext(**context)
+
+
+def test_ownership_context_rejects_a_non_uuid_owner_id() -> None:
+    with pytest.raises(ValueError, match="owner_id must be an InvoiceOps UUID"):
+        OwnershipContext(
+            organization_slug="course-2027",
+            owner_type="group",
+            owner_id="data-science-group",
+            created_by_rut="12345678-5",
+        )

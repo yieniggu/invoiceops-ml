@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from typing import Literal
+from uuid import UUID
 
 import mlflow
 
@@ -23,6 +24,10 @@ class OwnershipContext:
             raise ValueError("Ownership metadata values must not be blank")
         if self.owner_type not in {"user", "group"}:
             raise ValueError("owner_type must be 'user' or 'group'")
+        try:
+            UUID(self.owner_id)
+        except ValueError as error:
+            raise ValueError("owner_id must be an InvoiceOps UUID") from error
 
     def as_tags(self) -> dict[str, str]:
         """Return the stable tag contract used by runs and registered models."""
