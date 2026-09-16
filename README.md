@@ -7,7 +7,8 @@ notebooks explican el flujo didáctico y el código reusable vive en `src/`.
 
 Este repositorio incluye la configuración reusable de MLflow de ML-01, los tags
 de ownership de ML-02, el generador de datasets de ML-03 y los notebooks
-didácticos de ML-04 y ML-05. No incluye Docker ni infraestructura de MLflow.
+didácticos de ML-04, ML-05 y ML-06. No incluye Docker ni infraestructura de
+MLflow.
 
 ## Requisitos
 
@@ -174,6 +175,20 @@ Reemplace esos valores de ejemplo por el contexto vigente. No derive
 trabajo individual o de `Group.id` para trabajo grupal. El notebook usa
 `mlflow_config_from_env()` y `OwnershipContext`, por lo que funciona con la
 configuración local o remota ya aprobada sin guardar URLs ni credenciales.
+
+## Notebook ML-06
+
+Abra `notebooks/03_logistic_regression.ipynb` después de configurar MLflow y el
+mismo contexto académico no secreto de ML-05. El notebook carga los splits CSV
+reproducibles existentes de `invoice-risk-v1`, entrena exclusivamente
+`LogisticRegression` y mide accuracy, precision, recall y F1 en validation y
+test.
+
+El escalado de variables numéricas y la codificación de `country_risk` viven
+dentro del `Pipeline` registrado. El pipeline se ajusta sólo con train, por lo
+que validation y test no participan en el preprocessing aprendido y no hay
+leakage. El run registra los parámetros, métricas, tags de ownership y el
+artifact `model`, que contiene tanto preprocessing como clasificador.
 
 ## Estructura
 

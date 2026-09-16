@@ -15,6 +15,9 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "ipykernel",
+    "nbclient",
+    "nbformat",
     "pytest",
     "ruff",
 ]
