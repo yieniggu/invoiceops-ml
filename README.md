@@ -6,8 +6,8 @@ notebooks explican el flujo didáctico y el código reusable vive en `src/`.
 ## Alcance actual
 
 Este repositorio incluye la configuración reusable de MLflow de ML-01, los tags
-de ownership de ML-02, el generador de datasets de ML-03 y el notebook didáctico
-de ML-04. No incluye entrenamiento, Docker ni infraestructura de MLflow.
+de ownership de ML-02, el generador de datasets de ML-03 y los notebooks
+didácticos de ML-04 y ML-05. No incluye Docker ni infraestructura de MLflow.
 
 ## Requisitos
 
@@ -150,6 +150,30 @@ Abra `notebooks/01_dataset.ipynb` con Jupyter y ejecute las celdas en orden. El
 notebook genera o carga localmente `invoice-risk-v1` con una seed explícita,
 revisa sus metadatos y muestra los splits cronológicos y la distribución del
 target. Los datos sintéticos locales en `data/` están ignorados por Git.
+
+## Notebook ML-05
+
+Abra `notebooks/02_dummy.ipynb` después de configurar MLflow. El notebook genera
+o carga `invoice-risk-v1`, entrena únicamente `DummyClassifier(strategy="prior")`
+y registra parámetros y métricas de validation/test en MLflow. No registra un
+model artifact ni aplica preprocessing: esos temas corresponden a los notebooks
+de modelos entrenables posteriores.
+
+Además de las variables `MLFLOW_*`, entregue el contexto académico no secreto
+que proviene de InvoiceOps:
+
+```bash
+export INVOICEOPS_ORGANIZATION_SLUG=course-2027
+export INVOICEOPS_OWNER_TYPE=user
+export INVOICEOPS_OWNER_ID=ef14197c-8f5b-4aef-8fa7-310e4da998b7
+export INVOICEOPS_CREATED_BY_RUT=12345678-5
+```
+
+Reemplace esos valores de ejemplo por el contexto vigente. No derive
+`INVOICEOPS_OWNER_ID` desde un nombre o slug: debe ser el UUID de `User.id` para
+trabajo individual o de `Group.id` para trabajo grupal. El notebook usa
+`mlflow_config_from_env()` y `OwnershipContext`, por lo que funciona con la
+configuración local o remota ya aprobada sin guardar URLs ni credenciales.
 
 ## Estructura
 

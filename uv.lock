@@ -772,6 +772,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "mlflow" },
+    { name = "scikit-learn" },
 ]
 
 [package.dev-dependencies]
@@ -785,7 +786,10 @@ teaching = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "mlflow", specifier = "==3.16.0" }]
+requires-dist = [
+    { name = "mlflow", specifier = "==3.16.0" },
+    { name = "scikit-learn", specifier = "==1.9.1" },
+]
 
 [package.metadata.requires-dev]
 dev = [
