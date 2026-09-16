@@ -7,7 +7,7 @@ notebooks explican el flujo didáctico y el código reusable vive en `src/`.
 
 Este repositorio incluye la configuración reusable de MLflow de ML-01, los tags
 de ownership de ML-02, el generador de datasets de ML-03 y los notebooks
-didácticos de ML-04, ML-05, ML-06 y ML-07. No incluye Docker ni infraestructura de
+didácticos de ML-04, ML-05, ML-06, ML-07 y ML-08. No incluye Docker ni infraestructura de
 MLflow.
 
 ## Requisitos
@@ -203,6 +203,21 @@ el clasificador. El pipeline se ajusta sólo con train, por lo que validation y
 test no participan en el preprocessing aprendido y no hay leakage. El run
 registra los parámetros, métricas, tags de ownership y el artifact `model`, que
 contiene tanto preprocessing como clasificador.
+
+## Notebook ML-08
+
+Abra `notebooks/05_hist_gradient_boosting.ipynb` después de configurar MLflow y
+el mismo contexto académico no secreto de ML-05. El notebook carga los splits
+CSV reproducibles existentes de `invoice-risk-v1`, entrena exclusivamente
+`HistGradientBoostingClassifier` y mide accuracy, precision, recall y F1 en
+validation y test.
+
+La codificación de `country_risk` vive dentro del `Pipeline` registrado y se
+materializa como matriz densa, requisito de `HistGradientBoostingClassifier`.
+El pipeline se ajusta sólo con train, por lo que validation y test no participan
+en el preprocessing aprendido y no hay leakage. El run registra los parámetros,
+métricas, tags de ownership y el artifact `model`, que contiene tanto
+preprocessing como clasificador.
 
 ## Estructura
 
