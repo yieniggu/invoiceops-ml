@@ -7,8 +7,7 @@ notebooks explican el flujo didáctico y el código reusable vive en `src/`.
 
 Este repositorio incluye la configuración reusable de MLflow de ML-01, los tags
 de ownership de ML-02, el generador de datasets de ML-03 y los notebooks
-didácticos de ML-04, ML-05, ML-06, ML-07 y ML-08. No incluye Docker ni infraestructura de
-MLflow.
+didácticos de ML-04 a ML-09. No incluye Docker ni infraestructura de MLflow.
 
 ## Requisitos
 
@@ -218,6 +217,23 @@ El pipeline se ajusta sólo con train, por lo que validation y test no participa
 en el preprocessing aprendido y no hay leakage. El run registra los parámetros,
 métricas, tags de ownership y el artifact `model`, que contiene tanto
 preprocessing como clasificador.
+
+## Notebook ML-09
+
+Abra `notebooks/06_model_comparison.ipynb` después de registrar runs con los
+notebooks ML-05 a ML-08. El notebook recupera esos runs existentes y los ordena
+por `validation_recall`, `validation_precision` y `validation_f1`; no genera
+datos ni reentrena modelos.
+
+Priorice **Compare Runs** en la UI de MLflow: filtre los cuatro `run_name`,
+selecciónelos y compare métricas, parámetros y tags de ownership. El notebook
+no recomienda un candidate si falta alguno de los cuatro runs, e informa los
+`run_name` ausentes. El candidate sugerido requiere y ordena sólo
+`validation_recall`, `validation_precision` y `validation_f1`;
+`validation_accuracy` permanece como dato informativo y no influye en la
+selección. El alumno debe registrar el `run_id` y justificar el trade-off
+observado antes de continuar con el Quality Gate de ML-10. ML-09 no ejecuta
+Gates ni promueve modelos.
 
 ## Estructura
 
