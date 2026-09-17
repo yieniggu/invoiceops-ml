@@ -4,7 +4,15 @@ import mlflow
 import pytest
 
 from invoiceops_ml.mlflow import configure_mlflow, mlflow_config_from_env, tracking_uri_from_env
-from invoiceops_ml.ownership import OwnershipContext, set_run_ownership_tags
+from invoiceops_ml.ownership import (
+    PRODUCTION_REGISTERED_MODEL_NAME,
+    OwnershipContext,
+    owner_experiment_name,
+    owner_registered_model_name,
+    select_owner_experiment,
+    set_registered_model_ownership_tags,
+    set_run_ownership_tags,
+)
 
 
 def test_tracking_uri_from_env_reads_the_environment_value() -> None:
@@ -192,6 +200,62 @@ def test_ownership_context_rejects_missing_metadata_or_an_unknown_owner_type(
         OwnershipContext(**context)
 
 
+
+
+@pytest.mark.parametrize(
+    ("owner_type", "owner_id", "expected_experiment", "expected_registered_model"),
+    [
+        ("user", "ef14197c-8f5b-4aef-8fa7-310e4da998b7", "student/12.345.678-5/invoice-risk", "student-12.345.678-5-invoice-review"),
+        ("group", "3515a7c6-baa4-44aa-a433-e7c52d79a57d", "group/3515a7c6-baa4-44aa-a433-e7c52d79a57d/invoice-risk", "group-3515a7c6-baa4-44aa-a433-e7c52d79a57d-invoice-review"),
+    ],
+)
+def test_owner_resource_names_follow_the_canonical_conventions(owner_type: str, owner_id: str, expected_experiment: str, expected_registered_model: str) -> None:
+    context = OwnershipContext(organization_slug="course-2027", owner_type=owner_type, owner_id=owner_id, created_by_rut="12.345.678-5")
+    assert owner_experiment_name(context) == expected_experiment
+    assert owner_registered_model_name(context) == expected_registered_model
+
+
+def test_individual_resource_names_use_the_creator_rut_not_the_user_uuid() -> None:
+    context = OwnershipContext(organization_slug="course-2027", owner_type="user", owner_id="ef14197c-8f5b-4aef-8fa7-310e4da998b7", created_by_rut="12.345.678-5")
+    assert context.owner_id not in owner_experiment_name(context)
+    assert context.owner_id not in owner_registered_model_name(context)
+
+
+def test_select_owner_experiment_uses_the_canonical_owner_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    selected_experiments: list[str] = []
+    context = OwnershipContext(organization_slug="course-2027", owner_type="user", owner_id="ef14197c-8f5b-4aef-8fa7-310e4da998b7", created_by_rut="12.345.678-5")
+    monkeypatch.setattr("invoiceops_ml.ownership.mlflow.set_experiment", selected_experiments.append)
+    select_owner_experiment(context)
+    assert selected_experiments == ["student/12.345.678-5/invoice-risk"]
+
+
+def test_set_registered_model_ownership_tags_writes_the_stable_tag_contract() -> None:
+    recorded_tags: list[tuple[str, str, str]] = []
+    context = OwnershipContext(organization_slug="course-2027", owner_type="group", owner_id="3515a7c6-baa4-44aa-a433-e7c52d79a57d", created_by_rut="12.345.678-5")
+
+    class Client:
+        def set_registered_model_tag(self, name: str, key: str, value: str) -> None:
+            recorded_tags.append((name, key, value))
+
+    set_registered_model_ownership_tags("group-model", context, Client())
+    assert recorded_tags == [("group-model", key, value) for key, value in context.as_tags().items()]
+
+
+def test_set_registered_model_ownership_tags_rejects_the_shared_production_model() -> None:
+    recorded_tags: list[tuple[str, str, str]] = []
+    context = OwnershipContext(organization_slug="course-2027", owner_type="group", owner_id="3515a7c6-baa4-44aa-a433-e7c52d79a57d", created_by_rut="12.345.678-5")
+
+    class Client:
+        def set_registered_model_tag(self, name: str, key: str, value: str) -> None:
+            recorded_tags.append((name, key, value))
+
+    with pytest.raises(ValueError, match="shared production model"):
+        set_registered_model_ownership_tags(PRODUCTION_REGISTERED_MODEL_NAME, context, Client())
+    assert recorded_tags == []
+
+
+def test_production_registered_model_has_a_single_shared_name() -> None:
+    assert PRODUCTION_REGISTERED_MODEL_NAME == "invoice-review-production"
 def test_ownership_context_rejects_a_non_uuid_owner_id() -> None:
     with pytest.raises(ValueError, match="owner_id must be an InvoiceOps UUID"):
         OwnershipContext(

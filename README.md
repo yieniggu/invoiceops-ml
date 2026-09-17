@@ -120,8 +120,46 @@ with mlflow.start_run():
 
 Los tags permanecen visibles y se pueden filtrar en la UI de MLflow. El
 contrato completo de INT-02 está en
-`../dev/tickets/INT-02_ownership_academico_mlflow.md`. Las convenciones de
-nomenclatura de Experiment y Registered Model corresponden a MLFLOW-05.
+`../dev/tickets/INT-02_ownership_academico_mlflow.md`.
+
+## Convenciones de recursos MLflow
+
+Los recursos de cada owner no colisionan dentro de su Workspace porque el nombre
+canónico incorpora su identidad estable:
+
+| Tipo de trabajo | Experiment | Registered Model |
+| --- | --- | --- |
+| Individual | `student/<created_by_rut>/invoice-risk` | `student-<created_by_rut>-invoice-review` |
+| Grupal | `group/<Group.id>/invoice-risk` | `group-<Group.id>-invoice-review` |
+
+Para trabajo individual, `created_by_rut` es siempre la identidad del owner del
+recurso: no hay delegación. El `owner_id` UUID se conserva en los tags para
+resolver el usuario de InvoiceOps, pero no participa en el nombre individual.
+Para trabajo grupal, `Group.id` UUID es la única identidad de nombres y roles;
+nunca use `Group.name` ni un slug.
+
+Los notebooks entrenables seleccionan el Experiment correcto antes de abrir el
+run. Al registrar un modelo owner-scoped, reutilice los helpers para no repetir
+ni derivar convenciones:
+
+```python
+import mlflow
+
+from invoiceops_ml.ownership import (
+    owner_registered_model_name,
+    set_registered_model_ownership_tags,
+)
+
+client = mlflow.MlflowClient()
+model_name = owner_registered_model_name(ownership_context)
+client.create_registered_model(model_name)
+set_registered_model_ownership_tags(model_name, ownership_context, client)
+```
+
+`invoice-review-production` es el único Registered Model compartido. No tiene
+un owner académico y no debe recibir los tags de ownership ni un `owner_type`
+inventado como `shared`: el contrato sólo admite `user` y `group`. Su promoción
+y automatización pertenecen a tickets posteriores.
 
 ## Dataset sintético
 

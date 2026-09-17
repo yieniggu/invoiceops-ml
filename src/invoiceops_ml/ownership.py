@@ -8,6 +8,10 @@ import mlflow
 
 OwnerType = Literal["user", "group"]
 
+INVOICE_RISK_EXPERIMENT = "invoice-risk"
+INVOICE_REVIEW_MODEL = "invoice-review"
+PRODUCTION_REGISTERED_MODEL_NAME = "invoice-review-production"
+
 
 @dataclass(frozen=True)
 class OwnershipContext:
@@ -39,8 +43,38 @@ class OwnershipContext:
         }
 
 
+def owner_experiment_name(context: OwnershipContext) -> str:
+    """Return the canonical experiment name for an individual or group owner."""
+    if context.owner_type == "user":
+        return f"student/{context.created_by_rut}/{INVOICE_RISK_EXPERIMENT}"
+    return f"group/{context.owner_id}/{INVOICE_RISK_EXPERIMENT}"
+
+
+def owner_registered_model_name(context: OwnershipContext) -> str:
+    """Return the canonical registered model name for an individual or group owner."""
+    if context.owner_type == "user":
+        return f"student-{context.created_by_rut}-{INVOICE_REVIEW_MODEL}"
+    return f"group-{context.owner_id}-{INVOICE_REVIEW_MODEL}"
+
+
+def select_owner_experiment(context: OwnershipContext) -> None:
+    """Select the owner's experiment before opening an MLflow run."""
+    mlflow.set_experiment(owner_experiment_name(context))
+
+
 def set_run_ownership_tags(context: OwnershipContext) -> None:
     """Write ownership tags to the current MLflow run for UI filtering."""
     if mlflow.active_run() is None:
         raise RuntimeError("set_run_ownership_tags requires an active MLflow run")
     mlflow.set_tags(context.as_tags())
+
+
+def set_registered_model_ownership_tags(
+    registered_model_name: str, context: OwnershipContext, client: mlflow.MlflowClient | None = None
+) -> None:
+    """Write the stable ownership tag contract to an owner-scoped registered model."""
+    if registered_model_name == PRODUCTION_REGISTERED_MODEL_NAME:
+        raise ValueError("Cannot write academic ownership tags to the shared production model")
+    model_client = mlflow.MlflowClient() if client is None else client
+    for key, value in context.as_tags().items():
+        model_client.set_registered_model_tag(registered_model_name, key, value)

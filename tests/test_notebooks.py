@@ -21,12 +21,33 @@ def test_dummy_notebook_trains_only_the_baseline_and_logs_its_run() -> None:
     assert "from sklearn.dummy import DummyClassifier" in source
     assert "DummyClassifier(strategy=\"prior\")" in source
     assert "configure_mlflow(mlflow_config_from_env())" in source
+    assert "select_owner_experiment(ownership_context)" in source
     assert "set_run_ownership_tags(" in source
     assert "with mlflow.start_run(run_name=\"dummy-baseline\")" in source
     assert "mlflow.log_params(model.get_params())" in source
     assert "classification_metrics('validation'" in source
     for metric in ("accuracy", "precision", "recall", "f1"):
         assert f"f'{{prefix}}_{metric}'" in source
+
+def test_dummy_notebook_materializes_its_run_in_the_owner_experiment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repository = Path(__file__).parents[1]
+    dataset = generate_synthetic_dataset(seed=202605, rows=100, output_root=tmp_path / "data")
+    tracking_uri = f"sqlite:///{tmp_path / 'mlflow.db'}"
+    ownership_tags = {"organization_slug": "course-2027", "owner_type": "user", "owner_id": "ef14197c-8f5b-4aef-8fa7-310e4da998b7", "created_by_rut": "12.345.678-5"}
+    monkeypatch.setenv("INVOICEOPS_DATASET_DIR", str(dataset))
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", tracking_uri)
+    for name, value in ownership_tags.items():
+        monkeypatch.setenv(f"INVOICEOPS_{name.upper()}", value)
+
+    notebook = nbformat.read(repository / "notebooks" / "02_dummy.ipynb", as_version=4)
+    NotebookClient(notebook, timeout=120, kernel_name="python3").execute(cwd=tmp_path)
+
+    client = mlflow.MlflowClient(tracking_uri=tracking_uri)
+    experiment = client.get_experiment_by_name("student/12.345.678-5/invoice-risk")
+    assert experiment is not None
+    runs = client.search_runs([experiment.experiment_id])
+    assert len(runs) == 1
+    assert {name: runs[0].data.tags[name] for name in ownership_tags} == ownership_tags
 
 
 def test_logistic_regression_notebook_trains_and_logs_a_leakage_safe_pipeline() -> None:
@@ -56,6 +77,7 @@ def test_logistic_regression_notebook_trains_and_logs_a_leakage_safe_pipeline() 
     assert "mlflow.sklearn.save_model(model, model_dir)" in source
     assert 'mlflow.log_artifacts(model_dir, artifact_path="model")' in source
     assert all(not cell.get("outputs") for cell in payload["cells"] if cell["cell_type"] == "code")
+    assert "select_owner_experiment(ownership_context)" in source
 
 
 def test_logistic_regression_notebook_materializes_its_mlflow_run(
@@ -80,7 +102,9 @@ def test_logistic_regression_notebook_materializes_its_mlflow_run(
     )
     NotebookClient(notebook, timeout=120, kernel_name="python3").execute(cwd=tmp_path)
 
-    experiment = mlflow.MlflowClient(tracking_uri=tracking_uri).get_experiment_by_name("Default")
+    experiment = mlflow.MlflowClient(tracking_uri=tracking_uri).get_experiment_by_name(
+        "student/12.345.678-5/invoice-risk"
+    )
     assert experiment is not None
     runs = mlflow.MlflowClient(tracking_uri=tracking_uri).search_runs([experiment.experiment_id])
     assert len(runs) == 1
@@ -129,6 +153,7 @@ def test_random_forest_notebook_trains_and_logs_a_leakage_safe_pipeline() -> Non
     assert "mlflow.log_metrics(metrics)" in source
     assert "mlflow.sklearn.save_model(model, model_dir)" in source
     assert 'mlflow.log_artifacts(model_dir, artifact_path="model")' in source
+    assert "select_owner_experiment(ownership_context)" in source
     assert all(not cell.get("outputs") for cell in payload["cells"] if cell["cell_type"] == "code")
 
 
@@ -154,7 +179,9 @@ def test_random_forest_notebook_materializes_its_mlflow_run(
     )
     NotebookClient(notebook, timeout=120, kernel_name="python3").execute(cwd=tmp_path)
 
-    experiment = mlflow.MlflowClient(tracking_uri=tracking_uri).get_experiment_by_name("Default")
+    experiment = mlflow.MlflowClient(tracking_uri=tracking_uri).get_experiment_by_name(
+        "student/12.345.678-5/invoice-risk"
+    )
     assert experiment is not None
     runs = mlflow.MlflowClient(tracking_uri=tracking_uri).search_runs([experiment.experiment_id])
     assert len(runs) == 1
@@ -203,6 +230,7 @@ def test_hist_gradient_boosting_notebook_trains_and_logs_a_leakage_safe_pipeline
     assert "mlflow.log_params(model.get_params())" in source
     assert "mlflow.log_metrics(metrics)" in source
     assert "mlflow.sklearn.save_model(model, model_dir)" in source
+    assert "select_owner_experiment(ownership_context)" in source
     assert 'mlflow.log_artifacts(model_dir, artifact_path="model")' in source
     assert all(not cell.get("outputs") for cell in payload["cells"] if cell["cell_type"] == "code")
 
@@ -229,7 +257,9 @@ def test_hist_gradient_boosting_notebook_materializes_its_mlflow_run(
     )
     NotebookClient(notebook, timeout=120, kernel_name="python3").execute(cwd=tmp_path)
 
-    experiment = mlflow.MlflowClient(tracking_uri=tracking_uri).get_experiment_by_name("Default")
+    experiment = mlflow.MlflowClient(tracking_uri=tracking_uri).get_experiment_by_name(
+        "student/12.345.678-5/invoice-risk"
+    )
     assert experiment is not None
     runs = mlflow.MlflowClient(tracking_uri=tracking_uri).search_runs([experiment.experiment_id])
     assert len(runs) == 1
