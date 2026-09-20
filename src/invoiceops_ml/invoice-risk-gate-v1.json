@@ -1,0 +1,11 @@
+{
+  "version": "invoice-risk-gate-v1",
+  "metrics": {
+    "validation_recall": {
+      "min": 0.18
+    },
+    "validation_precision": {
+      "min": 0.48
+    }
+  }
+}

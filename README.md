@@ -273,12 +273,32 @@ selección. El alumno debe registrar el `run_id` y justificar el trade-off
 observado antes de continuar con el Quality Gate de ML-10. ML-09 no ejecuta
 Gates ni promueve modelos.
 
+## ML-10 quality gate
+
+`invoiceops_ml/invoice-risk-gate-v1.json` is the versioned baseline configuration shipped with the package. It
+evaluates only `validation_recall >= 0.18` and `validation_precision >= 0.48`
+for one explicit MLflow run. Run it from the repository root after configuring
+MLflow:
+
+```bash
+uv run invoiceops-quality-gate --run-id <mlflow-run-id>
+```
+
+The command emits JSON with the run ID, gate version, thresholds, observed
+metrics, individual checks, and the overall `passed` decision. It exits `0` for
+PASS and `1` for FAIL, so a later workflow can invoke it without changing its
+evaluation logic. A different versioned JSON file can be selected with
+`--config path/to/gate.json`.
+
+The reusable Python interface is `invoiceops_ml.gate.run_quality_gate()`. The
+gate reads a run and reports eligibility only. It does not create model versions,
+set aliases, call the Model Registry, or promote any model.
+
 ## Estructura
 
 ```text
 notebooks/          Material didáctico
 src/invoiceops_ml/  Código Python reusable
-config/             Configuración versionada no secreta
 tests/              Pruebas del código reusable
 .github/workflows/  Automatización futura
 ```

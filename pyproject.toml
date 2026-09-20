@@ -13,6 +13,9 @@ dependencies = [
     "scikit-learn==1.9.1",
 ]
 
+[project.scripts]
+invoiceops-quality-gate = "invoiceops_ml.gate:main"
+
 [dependency-groups]
 dev = [
     "ipykernel",
