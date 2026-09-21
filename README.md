@@ -294,6 +294,38 @@ The reusable Python interface is `invoiceops_ml.gate.run_quality_gate()`. The
 gate reads a run and reports eligibility only. It does not create model versions,
 set aliases, call the Model Registry, or promote any model.
 
+## ML-11 candidate training
+
+`config/candidates/rf-candidate-v1.json` is the versioned, reviewed contract for
+the Random Forest candidate. It declares the dataset generator inputs, feature
+schema, target, model, and exact parameters. It intentionally does not contain
+precomputed split hashes: the CLI materializes the dataset from its declared
+`seed` and `rows`, then verifies both the metadata lineage and the SHA-256 hash
+of each split before training.
+
+Run it from the repository root after configuring MLflow and the same non-secret
+ownership context used by the training notebooks:
+
+```bash
+uv run invoiceops-train-candidate --spec config/candidates/rf-candidate-v1.json
+```
+
+The default materialization directory is `notebooks/data/invoice-risk-v1`. Use
+`--dataset-dir` to select another directory ending in `invoice-risk-v1`:
+
+```bash
+uv run invoiceops-train-candidate \
+  --spec config/candidates/rf-candidate-v1.json \
+  --dataset-dir /tmp/invoice-risk-v1
+```
+
+The command fits its preprocessing pipeline and `RandomForestClassifier` only on
+the train split, evaluates validation and test splits, and writes a new MLflow
+run. The run includes ownership tags, candidate and dataset-lineage tags,
+parameters, metrics, the candidate JSON under `candidate_specification`, and the
+fitted pipeline under `model`. It does not run a quality gate, register or
+promote a model, interact with the Model Registry, or invoke notebooks.
+
 ## Estructura
 
 ```text

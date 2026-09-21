@@ -1,0 +1,31 @@
+{
+  "specification_version": "candidate-specification-v1",
+  "name": "rf-candidate-v1",
+  "dataset": {
+    "version": "invoice-risk-v1",
+    "seed": 202604,
+    "rows": 12000
+  },
+  "feature_schema": {
+    "version": "invoice-features-v1",
+    "features": [
+      "invoice_amount_cents",
+      "vendor_tenure_days",
+      "previous_incidents_12m",
+      "amount_vs_vendor_median",
+      "has_purchase_order",
+      "three_way_match",
+      "bank_account_recently_changed",
+      "country_risk"
+    ],
+    "target": "manual_review_required"
+  },
+  "model": {
+    "type": "random_forest",
+    "parameters": {
+      "n_estimators": 200,
+      "random_state": 202605,
+      "n_jobs": -1
+    }
+  }
+}

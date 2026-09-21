@@ -15,6 +15,7 @@ dependencies = [
 
 [project.scripts]
 invoiceops-quality-gate = "invoiceops_ml.gate:main"
+invoiceops-train-candidate = "invoiceops_ml.train:main"
 
 [dependency-groups]
 dev = [
