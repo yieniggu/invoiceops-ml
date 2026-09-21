@@ -449,3 +449,159 @@ def test_model_comparison_notebook_requires_all_model_runs(
     )
     with pytest.raises(CellExecutionError, match="Missing required model runs: hist-gradient-boosting"):
         NotebookClient(notebook, timeout=120, kernel_name="python3").execute(cwd=tmp_path)
+
+
+def test_registry_gate_and_promotion_notebook_registers_an_explicit_owner_model() -> None:
+    notebook = Path(__file__).parents[1] / "notebooks" / "07_registry_gate_and_promotion.ipynb"
+
+    payload = json.loads(notebook.read_text(encoding="utf-8"))
+    source = "\n".join(
+        line for cell in payload["cells"] if cell["cell_type"] == "code" for line in cell["source"]
+    )
+    markdown = "\n".join(
+        line for cell in payload["cells"] if cell["cell_type"] == "markdown" for line in cell["source"]
+    )
+
+    assert 'required_environment("INVOICEOPS_SELECTED_RUN_ID")' in source
+    assert 'mlflow.register_model(f"runs:/{selected_run_id}/model", model_name)' in source
+    assert "owner_registered_model_name(ownership_context)" in source
+    assert "set_registered_model_ownership_tags(model_name, ownership_context, client)" in source
+    assert "run_quality_gate(selected_run_id).as_report()" in source
+    assert "set_registered_model_alias" not in source
+    assert "alias `challenger`" in markdown
+    assert "Gate no registra una Model Version, no asigna aliases" in markdown
+    assert "decisión explícita de un revisor autorizado" in markdown
+    assert all(not cell.get("outputs") for cell in payload["cells"] if cell["cell_type"] == "code")
+
+
+def test_registry_gate_and_promotion_notebook_registers_a_version_and_runs_the_gate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from sklearn.dummy import DummyClassifier
+
+    repository = Path(__file__).parents[1]
+    tracking_uri = f"sqlite:///{tmp_path / 'mlflow.db'}"
+    ownership_tags = {
+        "organization_slug": "course-2027",
+        "owner_type": "user",
+        "owner_id": "ef14197c-8f5b-4aef-8fa7-310e4da998b7",
+        "created_by_rut": "12.345.678-5",
+    }
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", tracking_uri)
+    for name, value in ownership_tags.items():
+        monkeypatch.setenv(f"INVOICEOPS_{name.upper()}", value)
+
+    mlflow.set_tracking_uri(tracking_uri)
+    with mlflow.start_run() as run:
+        mlflow.set_tags(ownership_tags)
+        model = DummyClassifier(strategy="prior").fit([[0], [1]], [0, 1])
+        mlflow.sklearn.log_model(model, "model")
+        mlflow.log_metrics({"validation_recall": 0.80, "validation_precision": 0.75})
+    monkeypatch.setenv("INVOICEOPS_SELECTED_RUN_ID", run.info.run_id)
+
+    notebook = nbformat.read(
+        repository / "notebooks" / "07_registry_gate_and_promotion.ipynb", as_version=4
+    )
+    NotebookClient(notebook, timeout=120, kernel_name="python3").execute(cwd=tmp_path)
+
+    gate_output = notebook["cells"][4]["outputs"][-1]["data"]["text/plain"]
+    assert run.info.run_id in gate_output
+    assert "'passed': True" in gate_output
+
+    client = mlflow.MlflowClient(tracking_uri=tracking_uri)
+    model_name = "student-12.345.678-5-invoice-review"
+    registered_model = client.get_registered_model(model_name)
+    assert {name: registered_model.tags[name] for name in ownership_tags} == ownership_tags
+    versions = client.search_model_versions(f"name='{model_name}'")
+    assert len(versions) == 1
+    assert versions[0].run_id == run.info.run_id
+
+
+@pytest.mark.parametrize(
+    "run_ownership_tags",
+    [
+        {},
+        {
+            "organization_slug": "course-2027",
+            "owner_type": "user",
+            "owner_id": "b3c452fd-6a4b-490c-9dca-2ae9e9441e4d",
+            "created_by_rut": "12.345.678-5",
+        },
+    ],
+    ids=["missing", "mismatched"],
+)
+def test_registry_gate_and_promotion_notebook_rejects_runs_outside_active_ownership(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    run_ownership_tags: dict[str, str],
+) -> None:
+    from sklearn.dummy import DummyClassifier
+
+    repository = Path(__file__).parents[1]
+    tracking_uri = f"sqlite:///{tmp_path / 'mlflow.db'}"
+    ownership_tags = {
+        "organization_slug": "course-2027",
+        "owner_type": "user",
+        "owner_id": "ef14197c-8f5b-4aef-8fa7-310e4da998b7",
+        "created_by_rut": "12.345.678-5",
+    }
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", tracking_uri)
+    for name, value in ownership_tags.items():
+        monkeypatch.setenv(f"INVOICEOPS_{name.upper()}", value)
+
+    mlflow.set_tracking_uri(tracking_uri)
+    with mlflow.start_run() as run:
+        mlflow.set_tags(run_ownership_tags)
+        model = DummyClassifier(strategy="prior").fit([[0], [1]], [0, 1])
+        mlflow.sklearn.log_model(model, "model")
+        mlflow.log_metrics({"validation_recall": 0.80, "validation_precision": 0.75})
+    monkeypatch.setenv("INVOICEOPS_SELECTED_RUN_ID", run.info.run_id)
+
+    notebook = nbformat.read(
+        repository / "notebooks" / "07_registry_gate_and_promotion.ipynb", as_version=4
+    )
+    with pytest.raises(CellExecutionError, match="ownership tags do not match"):
+        NotebookClient(notebook, timeout=120, kernel_name="python3").execute(cwd=tmp_path)
+
+    client = mlflow.MlflowClient(tracking_uri=tracking_uri)
+    model_name = "student-12.345.678-5-invoice-review"
+    assert client.search_registered_models(filter_string=f"name='{model_name}'") == []
+    assert client.search_model_versions(f"name='{model_name}'") == []
+
+
+def test_registry_gate_and_promotion_notebook_reuses_the_existing_run_model_version(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from sklearn.dummy import DummyClassifier
+
+    repository = Path(__file__).parents[1]
+    tracking_uri = f"sqlite:///{tmp_path / 'mlflow.db'}"
+    ownership_tags = {
+        "organization_slug": "course-2027",
+        "owner_type": "user",
+        "owner_id": "ef14197c-8f5b-4aef-8fa7-310e4da998b7",
+        "created_by_rut": "12.345.678-5",
+    }
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", tracking_uri)
+    for name, value in ownership_tags.items():
+        monkeypatch.setenv(f"INVOICEOPS_{name.upper()}", value)
+
+    mlflow.set_tracking_uri(tracking_uri)
+    with mlflow.start_run() as run:
+        mlflow.set_tags(ownership_tags)
+        model = DummyClassifier(strategy="prior").fit([[0], [1]], [0, 1])
+        mlflow.sklearn.log_model(model, "model")
+        mlflow.log_metrics({"validation_recall": 0.80, "validation_precision": 0.75})
+    monkeypatch.setenv("INVOICEOPS_SELECTED_RUN_ID", run.info.run_id)
+
+    notebook = nbformat.read(
+        repository / "notebooks" / "07_registry_gate_and_promotion.ipynb", as_version=4
+    )
+    NotebookClient(notebook, timeout=120, kernel_name="python3").execute(cwd=tmp_path)
+    NotebookClient(notebook, timeout=120, kernel_name="python3").execute(cwd=tmp_path)
+
+    client = mlflow.MlflowClient(tracking_uri=tracking_uri)
+    model_name = "student-12.345.678-5-invoice-review"
+    versions = client.search_model_versions(f"name='{model_name}'")
+    assert len(versions) == 1
+    assert versions[0].run_id == run.info.run_id

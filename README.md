@@ -326,6 +326,29 @@ parameters, metrics, the candidate JSON under `candidate_specification`, and the
 fitted pipeline under `model`. It does not run a quality gate, register or
 promote a model, interact with the Model Registry, or invoke notebooks.
 
+## Notebook ML-13
+
+Abra `notebooks/07_registry_gate_and_promotion.ipynb` después de seleccionar un
+run existente con un artifact `model` y tags de ownership que coincidan con el
+contexto académico vigente. Entregue su ID sin escribirlo en el notebook:
+
+```bash
+export INVOICEOPS_SELECTED_RUN_ID=<mlflow-run-id>
+```
+
+El notebook deriva el nombre canónico owner-scoped del Registered Model, valida el
+ownership del run antes de registrar `runs:/<run-id>/model` como una Model Version y
+escribe los tags estables de ownership. Si ya existe una versión de ese mismo run
+para el mismo Registered Model, la reutiliza. Luego ejecuta el Quality Gate
+versionado existente para ese run. Muestra el ID del run, el nombre del Registered
+Model, la Model Version y el reporte serializable del Gate.
+
+En la UI de MLflow, asigne manualmente `challenger` a la versión registrada bajo
+revisión. Un PASS del Gate sólo acredita elegibilidad: no registra una versión, no
+asigna un alias, no aprueba una decisión de revisor ni promueve `champion`. Asigne
+`champion` en la UI sólo después de registrar una decisión explícita de un revisor
+autorizado.
+
 ## Estructura
 
 ```text
