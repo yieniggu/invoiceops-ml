@@ -17,23 +17,30 @@ def test_dummy_notebook_trains_only_the_baseline_and_logs_its_run() -> None:
     source = "\n".join(
         line for cell in payload["cells"] if cell["cell_type"] == "code" for line in cell["source"]
     )
-
     assert "from sklearn.dummy import DummyClassifier" in source
-    assert "DummyClassifier(strategy=\"prior\")" in source
+    assert 'DummyClassifier(strategy="prior")' in source
     assert "configure_mlflow(mlflow_config_from_env())" in source
     assert "select_owner_experiment(ownership_context)" in source
     assert "set_run_ownership_tags(" in source
-    assert "with mlflow.start_run(run_name=\"dummy-baseline\")" in source
+    assert 'with mlflow.start_run(run_name="dummy-baseline")' in source
     assert "mlflow.log_params(model.get_params())" in source
-    assert "classification_metrics('validation'" in source
+    assert 'classification_metrics("validation"' in source
     for metric in ("accuracy", "precision", "recall", "f1"):
-        assert f"f'{{prefix}}_{metric}'" in source
+        assert f'f"{{prefix}}_{metric}"' in source
 
-def test_dummy_notebook_materializes_its_run_in_the_owner_experiment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+
+def test_dummy_notebook_materializes_its_run_in_the_owner_experiment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     repository = Path(__file__).parents[1]
     dataset = generate_synthetic_dataset(seed=202605, rows=100, output_root=tmp_path / "data")
     tracking_uri = f"sqlite:///{tmp_path / 'mlflow.db'}"
-    ownership_tags = {"organization_slug": "course-2027", "owner_type": "user", "owner_id": "ef14197c-8f5b-4aef-8fa7-310e4da998b7", "created_by_rut": "12.345.678-5"}
+    ownership_tags = {
+        "organization_slug": "course-2027",
+        "owner_type": "user",
+        "owner_id": "ef14197c-8f5b-4aef-8fa7-310e4da998b7",
+        "created_by_rut": "12.345.678-5",
+    }
     monkeypatch.setenv("INVOICEOPS_DATASET_DIR", str(dataset))
     monkeypatch.setenv("MLFLOW_TRACKING_URI", tracking_uri)
     for name, value in ownership_tags.items():
@@ -174,9 +181,7 @@ def test_random_forest_notebook_materializes_its_mlflow_run(
     for name, value in ownership_tags.items():
         monkeypatch.setenv(f"INVOICEOPS_{name.upper()}", value)
 
-    notebook = nbformat.read(
-        repository / "notebooks" / "04_random_forest.ipynb", as_version=4
-    )
+    notebook = nbformat.read(repository / "notebooks" / "04_random_forest.ipynb", as_version=4)
     NotebookClient(notebook, timeout=120, kernel_name="python3").execute(cwd=tmp_path)
 
     experiment = mlflow.MlflowClient(tracking_uri=tracking_uri).get_experiment_by_name(
@@ -412,9 +417,7 @@ def test_model_comparison_notebook_ranks_existing_validation_runs(
                 }
             )
 
-    notebook = nbformat.read(
-        repository / "notebooks" / "06_model_comparison.ipynb", as_version=4
-    )
+    notebook = nbformat.read(repository / "notebooks" / "06_model_comparison.ipynb", as_version=4)
     NotebookClient(notebook, timeout=120, kernel_name="python3").execute(cwd=tmp_path)
 
     comparison_output = notebook["cells"][2]["outputs"][-1]["data"]["text/plain"]
@@ -444,10 +447,10 @@ def test_model_comparison_notebook_requires_all_model_runs(
                 }
             )
 
-    notebook = nbformat.read(
-        repository / "notebooks" / "06_model_comparison.ipynb", as_version=4
-    )
-    with pytest.raises(CellExecutionError, match="Missing required model runs: hist-gradient-boosting"):
+    notebook = nbformat.read(repository / "notebooks" / "06_model_comparison.ipynb", as_version=4)
+    with pytest.raises(
+        CellExecutionError, match="Missing required model runs: hist-gradient-boosting"
+    ):
         NotebookClient(notebook, timeout=120, kernel_name="python3").execute(cwd=tmp_path)
 
 
@@ -459,7 +462,10 @@ def test_registry_gate_and_promotion_notebook_registers_an_explicit_owner_model(
         line for cell in payload["cells"] if cell["cell_type"] == "code" for line in cell["source"]
     )
     markdown = "\n".join(
-        line for cell in payload["cells"] if cell["cell_type"] == "markdown" for line in cell["source"]
+        line
+        for cell in payload["cells"]
+        if cell["cell_type"] == "markdown"
+        for line in cell["source"]
     )
 
     assert 'required_environment("INVOICEOPS_SELECTED_RUN_ID")' in source

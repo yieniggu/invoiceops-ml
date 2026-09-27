@@ -93,7 +93,9 @@ def load_gate_config(path: Traversable) -> GateConfig:
 
     return GateConfig(
         version=version,
-        thresholds={metric_name: _minimum(metrics, metric_name) for metric_name in REQUIRED_METRICS},
+        thresholds={
+            metric_name: _minimum(metrics, metric_name) for metric_name in REQUIRED_METRICS
+        },
     )
 
 
@@ -132,7 +134,9 @@ def run_quality_gate(
 
 def main(argv: list[str] | None = None) -> int:
     """Run the quality gate and return a process status for automation callers."""
-    parser = argparse.ArgumentParser(description="Evaluate an explicit MLflow run with a versioned gate.")
+    parser = argparse.ArgumentParser(
+        description="Evaluate an explicit MLflow run with a versioned gate."
+    )
     parser.add_argument("--run-id", required=True, help="MLflow run ID to evaluate")
     parser.add_argument(
         "--config",

@@ -53,8 +53,14 @@ def _risk_label(record: dict[str, object], rng: random.Random) -> bool:
     score -= 0.45 if record["has_purchase_order"] else 0.0
     score -= 0.5 if record["three_way_match"] else 0.0
     score -= 0.3 if record["vendor_tenure_days"] > 2_000 else 0.0
-    score += 0.75 if record["vendor_tenure_days"] < 180 and record["bank_account_recently_changed"] else 0.0
-    score += 0.7 if record["country_risk"] == "high" and record["amount_vs_vendor_median"] > 1.5 else 0.0
+    score += (
+        0.75
+        if record["vendor_tenure_days"] < 180 and record["bank_account_recently_changed"]
+        else 0.0
+    )
+    score += (
+        0.7 if record["country_risk"] == "high" and record["amount_vs_vendor_median"] > 1.5 else 0.0
+    )
     return rng.random() < 1.0 / (1.0 + math.exp(-score))
 
 
@@ -62,13 +68,21 @@ def _generate_rows(rows: int, rng: random.Random) -> list[dict[str, object]]:
     start = datetime(2024, 1, 1, tzinfo=UTC)
     generated = []
     for index in range(rows):
-        tenure = rng.randint(0, 180) if rng.random() < 0.15 else int(180 + 3_470 * (1 - rng.random() ** 2))
+        tenure = (
+            rng.randint(0, 180)
+            if rng.random() < 0.15
+            else int(180 + 3_470 * (1 - rng.random() ** 2))
+        )
         incident_roll = rng.random()
         incidents = 0 if incident_roll < 0.78 else 1 if incident_roll < 0.93 else rng.randint(2, 5)
         record: dict[str, object] = {
             "invoice_id": f"INV-SYN-{index + 1:06d}",
-            "submitted_at": (start + timedelta(hours=index, minutes=rng.randint(0, 59))).isoformat(),
-            "invoice_amount_cents": max(1_000, min(5_000_000, round(math.exp(rng.gauss(math.log(180_000), 0.9))))),
+            "submitted_at": (
+                start + timedelta(hours=index, minutes=rng.randint(0, 59))
+            ).isoformat(),
+            "invoice_amount_cents": max(
+                1_000, min(5_000_000, round(math.exp(rng.gauss(math.log(180_000), 0.9))))
+            ),
             "vendor_tenure_days": tenure,
             "previous_incidents_12m": incidents,
             "amount_vs_vendor_median": round(math.exp(rng.gauss(-0.06125, 0.35)), 6),
@@ -84,7 +98,11 @@ def _generate_rows(rows: int, rng: random.Random) -> list[dict[str, object]]:
 
 def _write_split(path: Path, rows: list[dict[str, object]]) -> None:
     with path.open("w", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=["invoice_id", "submitted_at", *MODEL_FEATURES, TARGET], lineterminator="\n")
+        writer = csv.DictWriter(
+            file,
+            fieldnames=["invoice_id", "submitted_at", *MODEL_FEATURES, TARGET],
+            lineterminator="\n",
+        )
         writer.writeheader()
         writer.writerows(rows)
 

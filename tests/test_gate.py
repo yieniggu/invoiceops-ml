@@ -68,7 +68,9 @@ def test_quality_gate_rejects_runs_missing_required_validation_metrics(tmp_path:
         run_quality_gate("run-missing", write_gate_config(tmp_path / "gate.json"), client)
 
 
-def test_default_gate_config_is_available_outside_the_checkout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_default_gate_config_is_available_outside_the_checkout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.chdir(tmp_path)
 
     config = load_gate_config(DEFAULT_GATE_CONFIG_PATH)
@@ -92,7 +94,9 @@ def test_wheel_contains_default_gate_config(tmp_path: Path) -> None:
         assert "invoiceops_ml/invoice-risk-gate-v1.json" in archive.namelist()
 
 
-def test_cli_preserves_an_external_config_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_preserves_an_external_config_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     config_path = write_gate_config(tmp_path / "external-gate.json")
     received: dict[str, object] = {}
 

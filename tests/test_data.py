@@ -38,7 +38,9 @@ def test_dataset_generation_is_reproducible_and_records_lineage(tmp_path: Path) 
     }
 
 
-def test_dataset_generation_creates_chronological_train_validation_test_splits(tmp_path: Path) -> None:
+def test_dataset_generation_creates_chronological_train_validation_test_splits(
+    tmp_path: Path,
+) -> None:
     dataset = generate_synthetic_dataset(seed=91, rows=101, output_root=tmp_path)
     train, validation, test = (_read_split(dataset / filename) for filename in SPLIT_FILENAMES)
 
