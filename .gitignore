@@ -9,6 +9,7 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+.codegraph/
 
 # Notebook artifacts
 .ipynb_checkpoints/
