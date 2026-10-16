@@ -349,6 +349,56 @@ asigna un alias, no aprueba una decisión de revisor ni promueve `champion`. Asi
 `champion` en la UI sólo después de registrar una decisión explícita de un revisor
 autorizado.
 
+## Notebook ML-15: comprobar el serving
+
+Abra `notebooks/08_serving_smoke.ipynb` con el entorno instalado y el kernel
+**InvoiceOps ML Python 3.12** indicados en Instalación local. Antes de iniciar
+Jupyter, entregue explícitamente la URL base aprobada de una Model API ya
+disponible mediante `MODEL_API_URL`. Por ejemplo, sólo si ese es el destino local
+autorizado:
+
+```bash
+export MODEL_API_URL=http://127.0.0.1:8000
+uv run --group teaching jupyter lab
+```
+
+No hay fallback ni lectura automática de `.env`. Se admite HTTPS y un prefijo
+de ruta opcional; las barras finales se normalizan antes de agregar
+`/models/invoice-review/health` y `/models/invoice-review/predict`. La URL no debe
+contener credenciales, query ni fragmento. No la guarde en el notebook.
+
+Ejecute las celdas en orden: el cliente reusable
+`invoiceops_ml.serving.run_serving_smoke()` valida primero el health y sólo
+después envía una predicción con ocho features sintéticas fijas. Muestra el
+`model_id`, `model_version` y `run_id` propio de cada respuesta y una probabilidad
+finita entre 0 y 1. Un cambio de versión o run entre consultas conserva ambos
+snapshots y genera una advertencia; no se promete atomicidad ni se reintenta.
+
+### Límites y diagnóstico
+
+- No envía autenticación ni cookies, no hereda credenciales o proxies del entorno
+  y no sigue redirecciones. Un destino que exija autenticación no está soportado.
+- Cada respuesta admite hasta **64 KiB inclusive**, con lecturas acotadas. El
+  timeout de **10 segundos es por operación de socket**, no un plazo total.
+- `ServingSmokeError.category` distingue `configuration`, `transport`, `http`,
+  `schema` y `response_too_large`, sin exponer URL, cabeceras, cuerpos de error ni
+  excepciones internas. No publique diagnósticos con secretos.
+- No inicia servicios, entrena, consulta MLflow, carga artifacts, promueve
+  modelos ni llama al endpoint administrativo de refresh.
+
+### QA manual y reversión
+
+La validación automatizada sustituye sólo el transporte HTTP y ejecuta las
+celdas en proceso; **servicio real y kernel independiente no verificados**.
+En una sesión autorizada posterior, ejecute el notebook contra la API disponible,
+confirme ambos metadatos y la probabilidad, y compruebe los fallos por variable
+ausente y servicio no disponible. No inicie servicios desde este repositorio.
+Borre las salidas y mantenga `execution_count` en `null` antes de compartir.
+
+Para revertir, deje de usar el notebook y retire únicamente
+`src/invoiceops_ml/serving.py`, `notebooks/08_serving_smoke.ipynb` y esta sección.
+El cliente no modifica estado remoto ni requiere rollback de modelos.
+
 ## Estructura
 
 ```text
