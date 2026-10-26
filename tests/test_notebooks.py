@@ -1,3 +1,4 @@
+import ast
 import json
 from pathlib import Path
 
@@ -234,7 +235,20 @@ def test_hist_gradient_boosting_notebook_trains_and_logs_a_leakage_safe_pipeline
     assert 'with mlflow.start_run(run_name="hist-gradient-boosting")' in source
     assert "mlflow.log_params(model.get_params())" in source
     assert "mlflow.log_metrics(metrics)" in source
-    assert "mlflow.sklearn.save_model(model, model_dir)" in source
+    save_model = next(
+        node
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "save_model"
+        and isinstance(node.func.value, ast.Attribute)
+        and node.func.value.attr == "sklearn"
+    )
+    keywords = {keyword.arg: ast.literal_eval(keyword.value) for keyword in save_model.keywords}
+    assert keywords["serialization_format"] == "skops"
+    assert keywords["skops_trusted_types"] == [
+        "sklearn.ensemble._hist_gradient_boosting.predictor.TreePredictor"
+    ]
     assert "select_owner_experiment(ownership_context)" in source
     assert 'mlflow.log_artifacts(model_dir, artifact_path="model")' in source
     assert all(not cell.get("outputs") for cell in payload["cells"] if cell["cell_type"] == "code")
